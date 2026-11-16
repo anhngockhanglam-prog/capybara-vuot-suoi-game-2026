@@ -1,0 +1,6 @@
+{
+  "name": "Capybara Vượt Suối",
+  "description": "Trò chơi arcade 2D điều khiển chú Capybara vượt chướng ngại vật, hứng quýt vàng và mở khóa trang phục thư giãn.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

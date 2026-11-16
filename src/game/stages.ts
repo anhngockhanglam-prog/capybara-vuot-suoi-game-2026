@@ -1,0 +1,293 @@
+import { StageBiomeId, StageConfig } from './types';
+
+interface BiomeTemplate {
+  biome: StageBiomeId;
+  name: string;
+  subtitle: string;
+  skyTop: string;
+  skyBottom: string;
+  mountainFar: string;
+  mountainNear: string;
+  grassColor: string;
+  soilColor: string;
+  riverTop: string;
+  riverBottom: string;
+  foliageColor: string;
+  obstacleWeights: [number, number, number, number, number]; // rock, bamboo, croc, dragonfly, chili
+}
+
+const BIOME_TEMPLATES: BiomeTemplate[] = [
+  {
+    biome: 'emerald_stream',
+    name: 'Suối Ngọc Ban Mai',
+    subtitle: 'Dòng suối xanh mát bên rặng tre truyền thống.',
+    skyTop: '#68B0A0',
+    skyBottom: '#E4F2E8',
+    mountainFar: '#548777',
+    mountainNear: '#356654',
+    grassColor: '#3F7D4C',
+    soilColor: '#735742',
+    riverTop: '#1D6B68',
+    riverBottom: '#124647',
+    foliageColor: 'rgba(42, 92, 66, 0.36)',
+    obstacleWeights: [0.22, 0.24, 0.2, 0.18, 0.16],
+  },
+  {
+    biome: 'sakura_valley',
+    name: 'Thung Lũng Anh Đào',
+    subtitle: 'Bầu trời ửng hồng với núi tím và hương hoa dịu nhẹ.',
+    skyTop: '#B56E8D',
+    skyBottom: '#FCE4EE',
+    mountainFar: '#7E5E7A',
+    mountainNear: '#533E57',
+    grassColor: '#4E8259',
+    soilColor: '#7B5B4A',
+    riverTop: '#247378',
+    riverBottom: '#14494E',
+    foliageColor: 'rgba(131, 68, 96, 0.36)',
+    obstacleWeights: [0.18, 0.26, 0.16, 0.24, 0.16],
+  },
+  {
+    biome: 'sunset_marsh',
+    name: 'Đầm Hoàng Hôn',
+    subtitle: 'Ánh chiều tà vàng cam rực rỡ trên bến cá sấu.',
+    skyTop: '#C96F4B',
+    skyBottom: '#FDE4C4',
+    mountainFar: '#8D584B',
+    mountainNear: '#5E3934',
+    grassColor: '#5D7A3B',
+    soilColor: '#6D4A33',
+    riverTop: '#2B6C63',
+    riverBottom: '#18403D',
+    foliageColor: 'rgba(92, 65, 38, 0.36)',
+    obstacleWeights: [0.2, 0.18, 0.3, 0.16, 0.16],
+  },
+  {
+    biome: 'mist_canyon',
+    name: 'Hẻm Núi Sương Mù',
+    subtitle: 'Vách đá cao sừng sững ẩn hiện giữa làn sương sớm.',
+    skyTop: '#567891',
+    skyBottom: '#D6E6EE',
+    mountainFar: '#466173',
+    mountainNear: '#2D414F',
+    grassColor: '#3A6B54',
+    soilColor: '#62554C',
+    riverTop: '#1D5E70',
+    riverBottom: '#103946',
+    foliageColor: 'rgba(38, 69, 68, 0.38)',
+    obstacleWeights: [0.3, 0.18, 0.16, 0.18, 0.18],
+  },
+  {
+    biome: 'autumn_bamboo',
+    name: 'Rừng Thu Lá Đỏ',
+    subtitle: 'Sắc thu vàng óng trải dài qua những khóm tre già.',
+    skyTop: '#B58948',
+    skyBottom: '#FBF0D3',
+    mountainFar: '#8B6D4B',
+    mountainNear: '#5D462F',
+    grassColor: '#727D36',
+    soilColor: '#735036',
+    riverTop: '#226A63',
+    riverBottom: '#134240',
+    foliageColor: 'rgba(138, 86, 36, 0.38)',
+    obstacleWeights: [0.18, 0.28, 0.16, 0.22, 0.16],
+  },
+  {
+    biome: 'aurora_snow',
+    name: 'Suối Tuyết Cực Quang',
+    subtitle: 'Không khí se lạnh bên dòng suối nóng bốc hơi nghi ngút.',
+    skyTop: '#3E738F',
+    skyBottom: '#DDF0F7',
+    mountainFar: '#5D7B91',
+    mountainNear: '#3B5263',
+    grassColor: '#CFE3DC',
+    soilColor: '#6A655E',
+    riverTop: '#1B7B85',
+    riverBottom: '#0F4B54',
+    foliageColor: 'rgba(54, 92, 102, 0.34)',
+    obstacleWeights: [0.26, 0.2, 0.16, 0.2, 0.18],
+  },
+  {
+    biome: 'volcano_island',
+    name: 'Đảo Núi Lửa Rực Sáng',
+    subtitle: 'Đỉnh núi lửa âm ỉ ánh dung nham cam ấm rực chân trời.',
+    skyTop: '#5E2B2B',
+    skyBottom: '#F59E6C',
+    mountainFar: '#5C3A38',
+    mountainNear: '#3D2322',
+    grassColor: '#4E5B3A',
+    soilColor: '#4A3631',
+    riverTop: '#C25934',
+    riverBottom: '#7C2D12',
+    foliageColor: 'rgba(72, 46, 38, 0.44)',
+    obstacleWeights: [0.3, 0.12, 0.16, 0.14, 0.28],
+  },
+  {
+    biome: 'golden_beach',
+    name: 'Bãi Biển Nắng Vàng',
+    subtitle: 'Bờ cát mịn bên hàng dừa nghiêng gió và sóng biển xanh biếc.',
+    skyTop: '#2E93B8',
+    skyBottom: '#D9F4FA',
+    mountainFar: '#5AA1AC',
+    mountainNear: '#3B7F8C',
+    grassColor: '#E9C46A',
+    soilColor: '#D4A373',
+    riverTop: '#0891B2',
+    riverBottom: '#0E7490',
+    foliageColor: 'rgba(34, 112, 74, 0.38)',
+    obstacleWeights: [0.2, 0.16, 0.28, 0.2, 0.16],
+  },
+  {
+    biome: 'secret_forest',
+    name: 'Rừng Bí Mật Phát Sáng',
+    subtitle: 'Tán cổ thụ huyền bí với nấm phát sáng và đom đóm xanh lam.',
+    skyTop: '#1C4852',
+    skyBottom: '#7CC4B8',
+    mountainFar: '#1D4D4A',
+    mountainNear: '#133535',
+    grassColor: '#1E6B52',
+    soilColor: '#3E4C43',
+    riverTop: '#0F766E',
+    riverBottom: '#064E3B',
+    foliageColor: 'rgba(16, 85, 72, 0.45)',
+    obstacleWeights: [0.2, 0.28, 0.16, 0.22, 0.14],
+  },
+  {
+    biome: 'amusement_park',
+    name: 'Công Viên Giải Trí',
+    subtitle: 'Vòng đu quay rực rỡ và đoàn tàu hơi nước lướt qua đồi xanh.',
+    skyTop: '#4C8AC4',
+    skyBottom: '#FCE8D5',
+    mountainFar: '#5D879E',
+    mountainNear: '#3F657A',
+    grassColor: '#4D9B56',
+    soilColor: '#8B6247',
+    riverTop: '#228B96',
+    riverBottom: '#135761',
+    foliageColor: 'rgba(46, 108, 72, 0.36)',
+    obstacleWeights: [0.18, 0.22, 0.18, 0.24, 0.18],
+  },
+  {
+    biome: 'glowing_forest',
+    name: 'Rừng Phát Sáng',
+    subtitle: 'Nấm khổng lồ phát quang, đom đóm xanh và cây cổ thụ biết nói.',
+    skyTop: '#162840',
+    skyBottom: '#2B5B6B',
+    mountainFar: '#1E4352',
+    mountainNear: '#132D38',
+    grassColor: '#166558',
+    soilColor: '#2E3B42',
+    riverTop: '#14B8A6',
+    riverBottom: '#0F5257',
+    foliageColor: 'rgba(45, 212, 191, 0.34)',
+    obstacleWeights: [0.22, 0.28, 0.16, 0.2, 0.14],
+  },
+  {
+    biome: 'ice_mountain',
+    name: 'Núi Băng Pha Lê',
+    subtitle: 'Hang pha lê lấp lánh ánh bắc cực quang và hồ nước đóng băng.',
+    skyTop: '#2E5B88',
+    skyBottom: '#E0F2FE',
+    mountainFar: '#7DD3FC',
+    mountainNear: '#38BDF8',
+    grassColor: '#E0F2FE',
+    soilColor: '#64748B',
+    riverTop: '#7DD3FC',
+    riverBottom: '#0284C7',
+    foliageColor: 'rgba(186, 230, 253, 0.42)',
+    obstacleWeights: [0.3, 0.2, 0.15, 0.2, 0.15],
+  },
+  {
+    biome: 'ocean',
+    name: 'Đại Dương San Hô',
+    subtitle: 'Thành phố dưới biển sâu rực ánh ngọc trai và sinh vật biển bơi lội.',
+    skyTop: '#0B4F6C',
+    skyBottom: '#48CAE4',
+    mountainFar: '#0E7490',
+    mountainNear: '#155E75',
+    grassColor: '#2EC4B6',
+    soilColor: '#D4A373',
+    riverTop: '#0096C7',
+    riverBottom: '#023E8A',
+    foliageColor: 'rgba(6, 182, 212, 0.35)',
+    obstacleWeights: [0.24, 0.2, 0.2, 0.22, 0.14],
+  },
+  {
+    biome: 'candy_planet',
+    name: 'Hành Tinh Kẹo Ngọt',
+    subtitle: 'Sông sô-cô-la ngọt ngào chảy quanh núi bánh ngọt phủ kem dâu.',
+    skyTop: '#A855F7',
+    skyBottom: '#FBCFE8',
+    mountainFar: '#F472B6',
+    mountainNear: '#EC4899',
+    grassColor: '#F9A8D4',
+    soilColor: '#92400E',
+    riverTop: '#78350F',
+    riverBottom: '#451A03',
+    foliageColor: 'rgba(244, 114, 182, 0.36)',
+    obstacleWeights: [0.2, 0.22, 0.18, 0.22, 0.18],
+  },
+];
+
+let stageCounter = 1;
+
+export function generateNewStage(previousBiome?: StageBiomeId): StageConfig {
+  const candidates = previousBiome
+    ? BIOME_TEMPLATES.filter((b) => b.biome !== previousBiome)
+    : BIOME_TEMPLATES;
+  const template = candidates[Math.floor(Math.random() * candidates.length)] ?? BIOME_TEMPLATES[0];
+
+  const seed = Math.round(Math.random() * 10000);
+  const stageNumber = stageCounter++;
+
+  return {
+    id: `${template.biome}_${stageNumber}_${seed}`,
+    stageNumber,
+    biome: template.biome,
+    name: `${template.name} #${stageNumber}`,
+    subtitle: template.subtitle,
+    seed,
+    skyTop: template.skyTop,
+    skyBottom: template.skyBottom,
+    mountainFar: template.mountainFar,
+    mountainNear: template.mountainNear,
+    grassColor: template.grassColor,
+    soilColor: template.soilColor,
+    riverTop: template.riverTop,
+    riverBottom: template.riverBottom,
+    foliageColor: template.foliageColor,
+    mountainAmpFar: 68 + Math.round(Math.random() * 34),
+    mountainAmpNear: 42 + Math.round(Math.random() * 24),
+    mountainFreqFar: 0.0045 + Math.random() * 0.0025,
+    mountainFreqNear: 0.0075 + Math.random() * 0.0035,
+    obstacleWeights: template.obstacleWeights,
+  };
+}
+
+export function generateWeeklyStageForIndex(weekIndex: number): StageConfig {
+  const template = BIOME_TEMPLATES[Math.abs(weekIndex) % BIOME_TEMPLATES.length] ?? BIOME_TEMPLATES[0];
+  const seed = ((Math.abs(weekIndex) * 7919) % 9000) + 1000;
+  return {
+    id: `weekly_${weekIndex}_${template.biome}`,
+    stageNumber: weekIndex,
+    biome: template.biome,
+    name: `Giải Tuần · ${template.name}`,
+    subtitle: template.subtitle,
+    seed,
+    skyTop: template.skyTop,
+    skyBottom: template.skyBottom,
+    mountainFar: template.mountainFar,
+    mountainNear: template.mountainNear,
+    grassColor: template.grassColor,
+    soilColor: template.soilColor,
+    riverTop: template.riverTop,
+    riverBottom: template.riverBottom,
+    foliageColor: template.foliageColor,
+    mountainAmpFar: 82,
+    mountainAmpNear: 52,
+    mountainFreqFar: 0.0056,
+    mountainFreqNear: 0.0092,
+    obstacleWeights: template.obstacleWeights,
+  };
+}
+

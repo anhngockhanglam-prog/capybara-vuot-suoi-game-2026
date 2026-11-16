@@ -1,0 +1,432 @@
+{
+  "entities": {
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "Điểm cao nhất toàn cầu của mỗi người chơi Capybara Vượt Suối (không chứa thông tin cá nhân nhạy cảm).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID của người chơi."
+        },
+        "playerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 24,
+          "description": "Tên hiển thị trên bảng xếp hạng."
+        },
+        "score": {
+          "type": "number",
+          "description": "Số điểm cao nhất của người chơi."
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": ["relaxed", "normal", "turbo"],
+          "maxLength": 16,
+          "description": "Nhịp độ chơi đạt kỷ lục."
+        },
+        "distanceMeters": {
+          "type": "number",
+          "description": "Quãng đường chạy được tính bằng mét."
+        },
+        "fur": {
+          "type": "string",
+          "enum": [
+            "classic",
+            "cream",
+            "espresso",
+            "mist",
+            "honey",
+            "golden",
+            "ghost",
+            "galaxy",
+            "angel",
+            "rainbow",
+            "lava",
+            "ice"
+          ],
+          "maxLength": 16,
+          "description": "Màu lông Capybara."
+        },
+        "head": {
+          "type": "string",
+          "enum": ["none", "towel", "lotus", "crown", "sunglasses"],
+          "maxLength": 16,
+          "description": "Phụ kiện đầu Capybara."
+        },
+        "neck": {
+          "type": "string",
+          "enum": ["none", "scarf", "bell", "sakura"],
+          "maxLength": 16,
+          "description": "Phụ kiện cổ Capybara."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời điểm tạo bản ghi."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời điểm cập nhật kỷ lục gần nhất."
+        }
+      },
+      "required": [
+        "uid",
+        "playerName",
+        "score",
+        "difficulty",
+        "distanceMeters",
+        "fur",
+        "head",
+        "neck",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "YuzuGift": {
+      "title": "YuzuGift",
+      "description": "Gói quà quýt gửi tặng bạn bè trên bảng xếp hạng toàn cầu, giới hạn mỗi người chơi gửi một lần mỗi ngày.",
+      "type": "object",
+      "properties": {
+        "senderUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID của người gửi quà."
+        },
+        "senderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 24,
+          "description": "Tên hiển thị của người gửi."
+        },
+        "recipientUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID của người nhận quà."
+        },
+        "recipientName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 24,
+          "description": "Tên hiển thị của người nhận."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 60,
+          "description": "Lời chúc ngắn gửi kèm gói quà quýt."
+        },
+        "yuzuAmount": {
+          "type": "number",
+          "description": "Số quýt trong gói quà (cố định 15 quả)."
+        },
+        "dayBucket": {
+          "type": "number",
+          "description": "Chỉ số ngày UTC (floor(millis / 86400000)) để khóa giới hạn 1 lần/ngày."
+        },
+        "claimed": {
+          "type": "boolean",
+          "description": "Trạng thái người nhận đã mở gói quà hay chưa."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời điểm gửi quà."
+        },
+        "claimedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời điểm người nhận mở quà."
+        }
+      },
+      "required": [
+        "senderUid",
+        "senderName",
+        "recipientUid",
+        "recipientName",
+        "message",
+        "yuzuAmount",
+        "dayBucket",
+        "claimed",
+        "createdAt"
+      ]
+    },
+    "WeeklyTournamentSeason": {
+      "title": "WeeklyTournamentSeason",
+      "description": "Thông tin mùa giải Thách đấu tuần (reset vào thứ Hai hàng tuần theo UTC).",
+      "type": "object",
+      "properties": {
+        "weekId": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 24,
+          "pattern": "^week_[0-9]+$",
+          "description": "Mã định danh tuần dạng week_<weekIndex>."
+        },
+        "weekIndex": {
+          "type": "number",
+          "description": "Chỉ số tuần tính từ mốc thứ Hai UTC."
+        },
+        "weekLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48,
+          "description": "Tên hiển thị của mùa giải tuần."
+        },
+        "biome": {
+          "type": "string",
+          "maxLength": 32,
+          "enum": [
+            "emerald_stream",
+            "sakura_valley",
+            "sunset_marsh",
+            "mist_canyon",
+            "autumn_bamboo",
+            "aurora_snow",
+            "volcano_island",
+            "golden_beach",
+            "secret_forest",
+            "amusement_park"
+          ],
+          "description": "Bản đồ chủ đề của mùa giải tuần."
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID của người chơi khởi tạo mùa tuần."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời điểm khởi tạo mùa tuần."
+        }
+      },
+      "required": [
+        "weekId",
+        "weekIndex",
+        "weekLabel",
+        "biome",
+        "createdBy",
+        "createdAt"
+      ]
+    },
+    "WeeklyTournamentEntry": {
+      "title": "WeeklyTournamentEntry",
+      "description": "Thành tích cao nhất của người chơi trong bảng xếp hạng Thách đấu tuần.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID của người chơi."
+        },
+        "weekId": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 24,
+          "pattern": "^week_[0-9]+$",
+          "description": "Mã mùa giải tuần."
+        },
+        "weekIndex": {
+          "type": "number",
+          "description": "Chỉ số tuần."
+        },
+        "playerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 24,
+          "description": "Tên hiển thị trong bảng xếp hạng tuần."
+        },
+        "score": {
+          "type": "number",
+          "description": "Điểm cao nhất đạt được trong tuần."
+        },
+        "distanceMeters": {
+          "type": "number",
+          "description": "Quãng đường tốt nhất trong tuần (mét)."
+        },
+        "bossesDefeated": {
+          "type": "number",
+          "description": "Số Boss hạ gục tốt nhất trong tuần."
+        },
+        "fur": {
+          "type": "string",
+          "enum": [
+            "classic",
+            "cream",
+            "espresso",
+            "mist",
+            "honey",
+            "golden",
+            "ghost",
+            "galaxy",
+            "angel",
+            "rainbow",
+            "lava",
+            "ice"
+          ],
+          "maxLength": 16,
+          "description": "Màu lông Capybara."
+        },
+        "head": {
+          "type": "string",
+          "enum": ["none", "towel", "lotus", "crown", "sunglasses"],
+          "maxLength": 16,
+          "description": "Phụ kiện đầu Capybara."
+        },
+        "neck": {
+          "type": "string",
+          "enum": ["none", "scarf", "bell", "sakura"],
+          "maxLength": 16,
+          "description": "Phụ kiện cổ Capybara."
+        },
+        "runsCount": {
+          "type": "number",
+          "description": "Số lượt thi đấu giải tuần của người chơi."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời điểm ghi danh lần đầu trong tuần."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời điểm cập nhật thành tích gần nhất."
+        }
+      },
+      "required": [
+        "uid",
+        "weekId",
+        "weekIndex",
+        "playerName",
+        "score",
+        "distanceMeters",
+        "bossesDefeated",
+        "fur",
+        "head",
+        "neck",
+        "runsCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WeeklyTournamentClaim": {
+      "title": "WeeklyTournamentClaim",
+      "description": "Xác nhận nhận thưởng quýt và huy hiệu độc quyền từ Thách đấu tuần.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID của người nhận thưởng."
+        },
+        "weekId": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 24,
+          "pattern": "^week_[0-9]+$",
+          "description": "Mã tuần được nhận thưởng."
+        },
+        "weekIndex": {
+          "type": "number",
+          "description": "Chỉ số tuần được nhận thưởng."
+        },
+        "claimType": {
+          "type": "string",
+          "enum": ["final_rank", "qualifier"],
+          "maxLength": 16,
+          "description": "Loại thưởng (final_rank: tổng kết hạng cuối tuần; qualifier: thưởng ghi danh tuần)."
+        },
+        "rank": {
+          "type": "number",
+          "description": "Thứ hạng của người chơi."
+        },
+        "rewardYuzu": {
+          "type": "number",
+          "description": "Số quýt thưởng nhận được."
+        },
+        "badgeId": {
+          "type": "string",
+          "enum": [
+            "weekly_champion",
+            "weekly_runner_up",
+            "weekly_third",
+            "weekly_top10",
+            "weekly_participant"
+          ],
+          "maxLength": 32,
+          "description": "Mã huy hiệu độc quyền tuần."
+        },
+        "badgeTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48,
+          "description": "Tên huy hiệu độc quyền tuần."
+        },
+        "claimedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Thời điểm nhận thưởng."
+        }
+      },
+      "required": [
+        "uid",
+        "weekId",
+        "weekIndex",
+        "claimType",
+        "rank",
+        "rewardYuzu",
+        "badgeId",
+        "badgeTitle",
+        "claimedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/leaderboard/{userId}": {
+      "schema": {
+        "$ref": "#/entities/LeaderboardEntry"
+      },
+      "description": "Lưu trữ điểm cao nhất của từng người chơi để truy vấn Top 10 bảng xếp hạng toàn cầu."
+    },
+    "/yuzu_gifts/{giftId}": {
+      "schema": {
+        "$ref": "#/entities/YuzuGift"
+      },
+      "description": "Lưu trữ các gói quà quýt giữa người chơi trên bảng xếp hạng; giftId = senderUid_dayBucket đảm bảo mỗi ngày chỉ gửi 1 lần."
+    },
+    "/weekly_tournaments/{weekId}": {
+      "schema": {
+        "$ref": "#/entities/WeeklyTournamentSeason"
+      },
+      "description": "Mùa giải Thách đấu tuần, reset mỗi thứ Hai UTC."
+    },
+    "/weekly_tournaments/{weekId}/entries/{userId}": {
+      "schema": {
+        "$ref": "#/entities/WeeklyTournamentEntry"
+      },
+      "description": "Bảng xếp hạng riêng cho từng mùa Thách đấu tuần."
+    },
+    "/weekly_tournament_claims/{claimId}": {
+      "schema": {
+        "$ref": "#/entities/WeeklyTournamentClaim"
+      },
+      "description": "Lưu trữ lịch sử nhận thưởng quýt và huy hiệu độc quyền của Thách đấu tuần."
+    }
+  }
+}

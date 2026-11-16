@@ -1,0 +1,496 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        request.auth.uid == userId;
+    }
+
+    function isValidLeaderboardEntry(data) {
+      return data.keys().hasAll([
+          'uid',
+          'playerName',
+          'score',
+          'difficulty',
+          'distanceMeters',
+          'fur',
+          'head',
+          'neck',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'playerName',
+          'score',
+          'difficulty',
+          'distanceMeters',
+          'fur',
+          'head',
+          'neck',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        isValidId(data.uid) &&
+        data.uid == request.auth.uid &&
+        data.playerName is string &&
+        data.playerName.size() >= 1 &&
+        data.playerName.size() <= 24 &&
+        data.score is int &&
+        data.score >= 0 &&
+        data.score <= 10000000 &&
+        data.difficulty is string &&
+        data.difficulty.size() <= 16 &&
+        data.difficulty in ['relaxed', 'normal', 'turbo'] &&
+        data.distanceMeters is int &&
+        data.distanceMeters >= 0 &&
+        data.distanceMeters <= 1000000 &&
+        data.fur is string &&
+        data.fur.size() <= 16 &&
+        data.fur in [
+          'classic',
+          'cream',
+          'espresso',
+          'mist',
+          'honey',
+          'golden',
+          'ghost',
+          'galaxy',
+          'angel',
+          'rainbow',
+          'lava',
+          'ice'
+        ] &&
+        data.head is string &&
+        data.head.size() <= 16 &&
+        data.head in ['none', 'towel', 'lotus', 'crown', 'sunglasses'] &&
+        data.neck is string &&
+        data.neck.size() <= 16 &&
+        data.neck in ['none', 'scarf', 'bell', 'sakura'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidYuzuGift(data) {
+      return data.keys().hasAll([
+          'senderUid',
+          'senderName',
+          'recipientUid',
+          'recipientName',
+          'message',
+          'yuzuAmount',
+          'dayBucket',
+          'claimed',
+          'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'senderUid',
+          'senderName',
+          'recipientUid',
+          'recipientName',
+          'message',
+          'yuzuAmount',
+          'dayBucket',
+          'claimed',
+          'createdAt',
+          'claimedAt'
+        ]) &&
+        isValidId(data.senderUid) &&
+        isValidId(data.recipientUid) &&
+        data.senderUid != data.recipientUid &&
+        data.senderName is string &&
+        data.senderName.size() >= 1 &&
+        data.senderName.size() <= 24 &&
+        data.recipientName is string &&
+        data.recipientName.size() >= 1 &&
+        data.recipientName.size() <= 24 &&
+        data.message is string &&
+        data.message.size() <= 60 &&
+        data.yuzuAmount is int &&
+        data.yuzuAmount == 15 &&
+        data.dayBucket is int &&
+        data.dayBucket >= 19000 &&
+        data.dayBucket <= 100000 &&
+        data.claimed is bool &&
+        data.createdAt is timestamp &&
+        (!('claimedAt' in data) || data.claimedAt is timestamp);
+    }
+
+    match /leaderboard/{userId} {
+      // Public top-10 global leaderboard (contains only non-PII game scores and nicknames)
+      allow get: if isValidId(userId);
+      allow list: if resource.data.score >= 0;
+
+      allow create: if isValidId(userId) &&
+        isVerifiedOwner(userId) &&
+        isValidLeaderboardEntry(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isValidId(userId) &&
+        isVerifiedOwner(userId) &&
+        isValidLeaderboardEntry(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().score > existing().score &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'playerName',
+          'score',
+          'difficulty',
+          'distanceMeters',
+          'fur',
+          'head',
+          'neck',
+          'updatedAt'
+        ]);
+
+      allow delete: if isValidId(userId) && isVerifiedOwner(userId);
+    }
+
+    match /yuzu_gifts/{giftId} {
+      // Only sender or recipient can read individual gift documents
+      allow get: if isValidId(giftId) &&
+        isSignedIn() &&
+        (existing().senderUid == request.auth.uid || existing().recipientUid == request.auth.uid);
+
+      // List queries strictly scoped to authenticated sender or recipient
+      allow list: if isSignedIn() &&
+        (resource.data.recipientUid == request.auth.uid || resource.data.senderUid == request.auth.uid);
+
+      // Sender can create exactly 1 gift per UTC day (enforced by deterministic giftId + dayBucket == request.time UTC day)
+      allow create: if isValidId(giftId) &&
+        isVerifiedOwner(incoming().senderUid) &&
+        isValidYuzuGift(incoming()) &&
+        incoming().claimed == false &&
+        !('claimedAt' in incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().dayBucket == int(request.time.toMillis() / 86400000) &&
+        giftId == request.auth.uid + '_' + string(incoming().dayBucket) &&
+        exists(/databases/$(database)/documents/leaderboard/$(incoming().recipientUid));
+
+      // Only the recipient can claim an unclaimed gift (terminal state lock once claimed == true)
+      allow update: if isValidId(giftId) &&
+        isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        isValidYuzuGift(incoming()) &&
+        existing().recipientUid == request.auth.uid &&
+        existing().claimed == false &&
+        incoming().claimed == true &&
+        incoming().claimedAt == request.time &&
+        incoming().senderUid == existing().senderUid &&
+        incoming().senderName == existing().senderName &&
+        incoming().recipientUid == existing().recipientUid &&
+        incoming().recipientName == existing().recipientName &&
+        incoming().message == existing().message &&
+        incoming().yuzuAmount == existing().yuzuAmount &&
+        incoming().dayBucket == existing().dayBucket &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['claimed', 'claimedAt']);
+
+      // Prevent deletion so daily 1-gift-per-day limit cannot be reset
+      allow delete: if false;
+    }
+
+    function currentWeekIndex() {
+      return int((request.time.toMillis() + 259200000) / 604800000);
+    }
+
+    function isValidWeeklyTournamentSeason(data) {
+      return data.keys().hasAll([
+          'weekId',
+          'weekIndex',
+          'weekLabel',
+          'biome',
+          'createdBy',
+          'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'weekId',
+          'weekIndex',
+          'weekLabel',
+          'biome',
+          'createdBy',
+          'createdAt'
+        ]) &&
+        isValidId(data.weekId) &&
+        data.weekId.matches('^week_[0-9]+$') &&
+        data.weekIndex is int &&
+        data.weekIndex >= 2900 &&
+        data.weekIndex <= 100000 &&
+        data.weekLabel is string &&
+        data.weekLabel.size() >= 1 &&
+        data.weekLabel.size() <= 48 &&
+        data.biome is string &&
+        data.biome.size() <= 32 &&
+        data.biome in [
+          'emerald_stream',
+          'sakura_valley',
+          'sunset_marsh',
+          'mist_canyon',
+          'autumn_bamboo',
+          'aurora_snow',
+          'volcano_island',
+          'golden_beach',
+          'secret_forest',
+          'amusement_park'
+        ] &&
+        isValidId(data.createdBy) &&
+        data.createdBy == request.auth.uid &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidWeeklyEntry(data) {
+      return data.keys().hasAll([
+          'uid',
+          'weekId',
+          'weekIndex',
+          'playerName',
+          'score',
+          'distanceMeters',
+          'bossesDefeated',
+          'fur',
+          'head',
+          'neck',
+          'runsCount',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'weekId',
+          'weekIndex',
+          'playerName',
+          'score',
+          'distanceMeters',
+          'bossesDefeated',
+          'fur',
+          'head',
+          'neck',
+          'runsCount',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        isValidId(data.uid) &&
+        data.uid == request.auth.uid &&
+        isValidId(data.weekId) &&
+        data.weekId.matches('^week_[0-9]+$') &&
+        data.weekIndex is int &&
+        data.weekIndex >= 2900 &&
+        data.weekIndex <= 100000 &&
+        data.playerName is string &&
+        data.playerName.size() >= 1 &&
+        data.playerName.size() <= 24 &&
+        data.score is int &&
+        data.score >= 0 &&
+        data.score <= 10000000 &&
+        data.distanceMeters is int &&
+        data.distanceMeters >= 0 &&
+        data.distanceMeters <= 1000000 &&
+        data.bossesDefeated is int &&
+        data.bossesDefeated >= 0 &&
+        data.bossesDefeated <= 500 &&
+        data.fur is string &&
+        data.fur.size() <= 16 &&
+        data.fur in [
+          'classic',
+          'cream',
+          'espresso',
+          'mist',
+          'honey',
+          'golden',
+          'ghost',
+          'galaxy',
+          'angel',
+          'rainbow',
+          'lava',
+          'ice'
+        ] &&
+        data.head is string &&
+        data.head.size() <= 16 &&
+        data.head in ['none', 'towel', 'lotus', 'crown', 'sunglasses'] &&
+        data.neck is string &&
+        data.neck.size() <= 16 &&
+        data.neck in ['none', 'scarf', 'bell', 'sakura'] &&
+        data.runsCount is int &&
+        data.runsCount >= 1 &&
+        data.runsCount <= 10000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidWeeklyClaim(data) {
+      return data.keys().hasAll([
+          'uid',
+          'weekId',
+          'weekIndex',
+          'claimType',
+          'rank',
+          'rewardYuzu',
+          'badgeId',
+          'badgeTitle',
+          'claimedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'weekId',
+          'weekIndex',
+          'claimType',
+          'rank',
+          'rewardYuzu',
+          'badgeId',
+          'badgeTitle',
+          'claimedAt'
+        ]) &&
+        isValidId(data.uid) &&
+        data.uid == request.auth.uid &&
+        isValidId(data.weekId) &&
+        data.weekId.matches('^week_[0-9]+$') &&
+        data.weekIndex is int &&
+        data.weekIndex >= 2900 &&
+        data.weekIndex <= 100000 &&
+        data.claimType is string &&
+        data.claimType.size() <= 16 &&
+        data.claimType in ['final_rank', 'qualifier'] &&
+        data.rank is int &&
+        data.rank >= 1 &&
+        data.rank <= 100000 &&
+        data.rewardYuzu is int &&
+        data.rewardYuzu in [50, 60, 120, 200, 300, 500] &&
+        data.badgeId is string &&
+        data.badgeId.size() <= 32 &&
+        data.badgeId in [
+          'weekly_champion',
+          'weekly_runner_up',
+          'weekly_third',
+          'weekly_top10',
+          'weekly_participant'
+        ] &&
+        data.badgeTitle is string &&
+        data.badgeTitle.size() >= 1 &&
+        data.badgeTitle.size() <= 48 &&
+        data.claimedAt is timestamp;
+    }
+
+    match /weekly_tournaments/{weekId} {
+      allow get: if isValidId(weekId);
+      allow list: if resource.data.weekIndex >= 0;
+
+      allow create: if isValidId(weekId) &&
+        isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        isValidWeeklyTournamentSeason(incoming()) &&
+        incoming().weekIndex == currentWeekIndex() &&
+        weekId == 'week_' + string(incoming().weekIndex) &&
+        incoming().createdAt == request.time;
+
+      allow update, delete: if false;
+
+      match /entries/{userId} {
+        allow get: if isValidId(weekId) && isValidId(userId);
+        allow list: if resource.data.score >= 0;
+
+        allow create: if isValidId(weekId) &&
+          isValidId(userId) &&
+          isVerifiedOwner(userId) &&
+          isValidWeeklyEntry(incoming()) &&
+          incoming().weekId == weekId &&
+          incoming().weekIndex == currentWeekIndex() &&
+          weekId == 'week_' + string(incoming().weekIndex) &&
+          incoming().runsCount == 1 &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/weekly_tournaments/$(weekId));
+
+        allow update: if isValidId(weekId) &&
+          isValidId(userId) &&
+          isVerifiedOwner(userId) &&
+          isValidWeeklyEntry(incoming()) &&
+          incoming().uid == existing().uid &&
+          incoming().weekId == existing().weekId &&
+          incoming().weekIndex == existing().weekIndex &&
+          incoming().weekIndex == currentWeekIndex() &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().runsCount == existing().runsCount + 1 &&
+          incoming().score >= existing().score &&
+          incoming().distanceMeters >= existing().distanceMeters &&
+          incoming().bossesDefeated >= existing().bossesDefeated &&
+          exists(/databases/$(database)/documents/weekly_tournaments/$(weekId)) &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'playerName',
+            'score',
+            'distanceMeters',
+            'bossesDefeated',
+            'fur',
+            'head',
+            'neck',
+            'runsCount',
+            'updatedAt'
+          ]);
+
+        allow delete: if isValidId(weekId) && isVerifiedOwner(userId);
+      }
+    }
+
+    match /weekly_tournament_claims/{claimId} {
+      allow get: if isValidId(claimId) &&
+        isSignedIn() &&
+        existing().uid == request.auth.uid;
+
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+
+      allow create: if isValidId(claimId) &&
+        isVerifiedOwner(incoming().uid) &&
+        isValidWeeklyClaim(incoming()) &&
+        incoming().claimedAt == request.time &&
+        incoming().weekId == 'week_' + string(incoming().weekIndex) &&
+        (
+          (
+            incoming().claimType == 'qualifier' &&
+            claimId == incoming().weekId + '_q_' + request.auth.uid &&
+            incoming().weekIndex == currentWeekIndex() &&
+            incoming().rewardYuzu == 60 &&
+            incoming().badgeId == 'weekly_participant'
+          ) ||
+          (
+            incoming().claimType == 'final_rank' &&
+            claimId == incoming().weekId + '_' + request.auth.uid &&
+            incoming().weekIndex < currentWeekIndex() &&
+            (
+              (incoming().rank == 1 && incoming().rewardYuzu == 500 && incoming().badgeId == 'weekly_champion') ||
+              (incoming().rank == 2 && incoming().rewardYuzu == 300 && incoming().badgeId == 'weekly_runner_up') ||
+              (incoming().rank == 3 && incoming().rewardYuzu == 200 && incoming().badgeId == 'weekly_third') ||
+              (incoming().rank >= 4 && incoming().rank <= 10 && incoming().rewardYuzu == 120 && incoming().badgeId == 'weekly_top10') ||
+              (incoming().rank >= 11 && incoming().rewardYuzu == 50 && incoming().badgeId == 'weekly_participant')
+            )
+          )
+        ) &&
+        exists(/databases/$(database)/documents/weekly_tournaments/$(incoming().weekId)/entries/$(request.auth.uid));
+
+      allow update, delete: if false;
+    }
+  }
+}
